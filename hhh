@@ -1,14 +1,11 @@
-Some of my goals (goals #3, #4 and #5) had already become sort of irrelevant by the time I had the mid-year conversation with Aris. This was either due to the reorganisation or attributed to de-prioritization of certain items in BOW. In such cases, I have written about the other projects that i have been involved in this year.
+Some of my goals (goals #3, #4 and #5) had already become sort of irrelevant by the time I had the mid-year conversation with Aris. This was either due to the reorganisation or attributed to de-prioritization of certain items in BOW. In such cases, I have written about the other projects that I have been involved in this year.
 
 1. MD API/ MDSTATS
-   - japan md api
-   - shanghai md api
-   - unit testing md api
-   - mdstats migration to CTI
-   - mdstats backfill for jp PTS data
-   - introducing filtering for GW/RT
-
+   - After Nikita had left, I started to contribute/own tasks related to MDAPI. Ever since, we had made two major changes to the api. First is for Japan market - where we added one second buffer to the amopen session. This comes at the back of a major discrepancy (yet interesting) in the TCA report number where MDAPI returned open time as 08:59am for stocks in Tokyo (while the market itself opens only at 09:00am). This was also the first time we had written unit test cases for an MD API change. The second major update was implementation of MDAPI for Shanghai stock exchange. As with the other case, this was also backed by unit testing.
+   - Closely related to mdapi was MDSTATS. This year, I had made some contributions to this package as well and this helped me a lot in understanding the code base. The first and major change I got make was adding a filter logic to MDSTATS GW and RT. Since the TSE OSE merger phase 2, we had retired the RICS service that MDSTATS depends on to filter symbol universe. So, MDSTATS JP instance started to have data for all the rics in japan. However, GW/RT (that resides in HK STI) didnt need all these symbols. So I had to implement a filter logic at the GW level while subscribing to MDSTATS JP. Other minor contributions to the package includes migration of MDSTATS AP instance from STI to CTI, making it closer to the marketdata source. This helped reduce traffic between CTI and STI. And lastly backfilling of data for CHJ and JNX market in Japan.
+   
 2. Enhance q knowledge and write better/efficient code
+   - Learning Q has been a constant process for me throughout this year! It is very exciting as I constantly got to know better ways to write a particular piece of code. This largely came from looking at lot more of our code base this year and also from the internal quizes and trainings :)
 
 3. Password encryption and Audit remediation
    - This had been a major part of my work for the last two years. This year we had successfully closed the Audit CAP by encrypting passwords in all the packages/services in APAC. We had also completed this for some of the global code base - like dna q/java api, discovery, entitlement service, client alerts etc.
@@ -22,10 +19,8 @@ Some of my goals (goals #3, #4 and #5) had already become sort of irrelevant by 
    - Coordinated weekend testing for marketdata capture and RIO services for downstream subscribers like MOGA
 
 5. Shanghai Connect
-   - This project has been a great learning experience as it involved implementing the full stack of applications that we do as a team. This meant setting up feedhandlers to capture marketdata for the new market; and upon capture of raw data, implementing marketdata api based on the behaviour of exchnage (amopen/continuous/close and so). This also was the first time I had to implement mdapi from the scratch for any market. The knowledge gained here has been really valuable. After marketdata/ mdapi it was mdstats. This was 
-   - mdstats/refdata/pt changes for mic code mapping
-   - regional tca reporting backend/ jasperserver implementation
-   - benchmark comparison between regional/global tca
+   - This project has been a great learning experience as it involved implementing the full stack of applications that we do as a team. This meant setting up feedhandlers to capture marketdata for the new market; and upon capture of raw data, implementing marketdata api based on the behaviour of exchange (amopen/continuous/close and so). This also was the first time I had to implement mdapi from the scratch for any market. The knowledge gained here has been really valuable. After marketdata/ mdapi it was mdstats set up. I also had to do maraketdata data validation against Bloomberg and volume/capacity analysis for the new flow - to understand how space/memory this was going to take.
+   - There was not much change for Refdata/OrderState/OrderCalcs as upstream brokers/RIOMessageSource remained the same. I just had to add SHANGHAI MD RDB to the recovery list for OrderCalcs. The final/more interesting part of the project was setting up Regional TCA reports. After CS team had set up AlgoMessenger configs, I had to implement reporting for the new exchange. This involved changes in reporting backend and TCA gateway (along with Jasperreports). The most interesting part was the comparison of benchmarks between the regional TCA and GTCA. This was the first time I actually got to understand what each benchmark means and how they are computed.
    
 6. EIC roll out for japan
   - Rolled out of EIC suite to JP
@@ -43,4 +38,5 @@ Some of my goals (goals #3, #4 and #5) had already become sort of irrelevant by 
    - Delivering global CET newsletter (reCET) the last two years :) we come up with suggestions on various topics for the newsletter and reachout to appropriate person and draft the newsletter
    
 9. Unit testing and BAND/DNA integration and GTCA - QA/Production release
-R
+   - For the earlier part of this year I was largely working on integrating unit testing framework with DNA. It was also one of the more exciting projects I had worked on this year because it involved automation of running test suite as part of build process by BAND. Aris has already covered all these features in his presentation deck (regarding k4unit testing and its integration with BAND and DNA) and I was really happy I got to work on it as I learnt a lot from this project.
+   - We also managed to get some structure around QA for all GTCA releases (ordercalcs specifically) in APAC. We formalised the list of things to be tested <insert link> for all ordercalcs releases. I also got to coordinate the release/checkouts for APAC region along with Dannie/William for all our GTCA releases and helped make sure that the numbers looked ok for all our releases.
