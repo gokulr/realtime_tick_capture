@@ -1,4 +1,4 @@
-
+/ init schema for trade table
 trade:([] 
   time:`time$();
   sym:`g#`$();
@@ -6,6 +6,7 @@ trade:([]
   size:`int$()
   );
 
+/ init schema for quote table
 quote:([] 
   time:`time$();
   sym:`g#`$();
