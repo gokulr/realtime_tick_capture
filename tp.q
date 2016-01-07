@@ -1,17 +1,8 @@
-
-// knowledge required (read up on it if these terms don't mean anything to you):
-// - q data structures: lists/vectors (and nested lists), tables
-// - file i/o and file handles
-// - ipc: sync and async message passing, socket handles
-// - usage of -11!
-// - q internal callbacks (.z.pc and .z.ts in particular)
-// - attributes
-// - adverbs (each-left, each);
-// - q timer
-// - in general sub/pub architectures
-
-
-// code                                                                 instructions/steps
+/
+  q data structures used:- lists/vectors (and nested lists), tables
+  concepts used:- file i/o and file handles, ipc: sync and async message passing, socket handles, 
+  internal callbacks (.z.pc and .z.ts in particular), sub/pub architectures
+\
 
 \l utils.q                                                              / load utils funcs
 \l tick_schema.q                                                        / load schemas
@@ -25,117 +16,150 @@ SEQ:0;                                                                  / sequen
 L:();                                                                   / log name
 SUBS:();                                                                / set subscribers list - a simple list of socket handlers
 
-
 // tp log util funcs
 
-// path - path to log to
-// d - log date
-// return - nothing
+/
+  path - path to log to
+  d - log date
+  return - nothing
+\
 set_log_name:{[path;d]
-                                                                        / set log name L, format should be /path_to_log_to/ticker_plant-YYYY.MM.DD
+ `L set hsym `$path,"/ticker_plant-",string d;                          / set log name L, format should be /path_to_log_to/ticker_plant-YYYY.MM.DD
  };
 
-// init log to empty log if not existent yet
-// return - nothing
+/
+  init log to empty log if not existent yet
+  return - nothing
+\
 create_log:{[]
-                                                                        / initialise log on disk to empty list
+ if[not count key L; L set ()];                                         / initialise log on disk to empty list
  };
 
-// sets the sequence number (number of messages logged so far)
-// return - nothing
+/
+  sets the sequence number (number of messages logged so far)
+  return - nothing
+\
 set_seq_num:{[l]
-                                                                        / find number messages logged so far and
-                                                                        / set SEQ that number (use and most importantly understand -11!)
+ `SEQ set -11!(-2;l);                                                   / find number messages logged so far and set SEQ that number using -11!
  };
 
-// init function - sets up the process
+/
+  init function - sets up the process
+\
 init:{
-                                                                        / set logname globally, so we can accecss it in the process
-                                                                        / init the log
-                                                                        / set SEQ
-                                                                        / set timer to run ever 1 second
+ set_log_name[LPATH;CDATE];                                     / set logname globally, so we can accecss it in the process
+ create_log[];                                                  / init the log
+ set_seq_num[L];                                                / set SEQ
+ value "\\t 1000";                                              / set timer to run ever 1 second
  };
 
-// publish a table to all subscribes
-// t - the table to publish; t is a sym, e.g. `trade
-// return - nothing
+/
+  publish a table to all subscribes
+  t - the table to publish; t is a sym, e.g. `trade
+  return - nothing
+  try to use each left instead of loop IDIOT
+\
 pub:{[t]
-                                                                        / publish if any subscribers
+ if[count SUBS;  {[t;x] (neg x)(`upd;t;value t)}[t;]each SUBS];                                 / publish if any subscribers
  };
 
-// adds a subscriber to the subscribers' list
-// h - subscriber handle
-// return - nothing
+/
+  adds a subscriber to the subscribers' list
+  h - subscriber handle
+  return - nothing
+\
 sub:{[h]
-                                                                        / add handle to SUBS
+ SUBS,::h;                                                                      / add handle to SUBS
  };
 
-// function called by subscriber to subscribe to trade/quote (all) tables
-// hint: read up on .z.w, you will need it here.
-// return - nothing
+/
+  function called by subscriber to subscribe to trade/quote (all) tables
+  .z.w is DA BOMB
+  return - nothing
+\
 tp_sub:{[]
-                                                                        / reply with all tables and schemas, and set them client-side
-                                                                        / finally send back log and last sequence number
-                                                                        / call generic subscription logic
+ (neg .z.w)(set';tables`;get each tables`);                     / reply with all tables and schemas, and set them client-side
+ (neg .z.w)(`replay;L;SEQ);                                     / finally send back log and last sequence number
+ sub(.z.w);                                                     / call generic subscription logic
  };
 
-// stamps the data with current time
-// d - nested list of data
-// return - list of vectors (first one being the time vector)
+/
+  stamps the data with current time
+  d - nested list of data
+  twisted and interesting piece!!!!
+  return - list of vectors (first one being the time vector)
+\
 timestamp:{[d]
-                                                                        / timestamp data with TP time of arrival
+ :(enlist(max count each d)#.z.T),d;                            / timestamp data with TP time of arrival
  };
 
-// log event
-// e - event of type (`upd;`trade;nested_data);
-// return - nothing
-// explanation:
-//   event e will be used on replay by real-time database;
-//   real-time database will just evaluate each parse tree,
-//   aka call value (`upd;`trade;nested_data)
+/
+  log event to TP log file
+  e - event of type (`upd;`trade;nested_data);
+  return - nothing
+  explanation:
+    event e will be used on replay by real-time database;
+    real-time database will just evaluate each parse tree,
+    aka call value (`upd;`trade;nested_data)
+    cool stuff huh!!
+\
 log_to_tp:{[e]
-                                                                        / append to log
+ .[L;();,;e];                                                   / append to log
  };
 
-// upd function - this is the feehandler callback function on publish
-// t - table to publish data on (you could also imagine table as a topic)
-// d - data for table. d is a mixed nested list (rectangular matrix)
-//     basically fh sends one vector per column, as in (a1 a2 a3;b1 b2 b3;c1 c2 c3;d1 d2 d3;...)
-// return - nothing
+/
+  upd function - this is the feehandler callback function on publish
+  t - table to publish data on (you could also imagine table as a topic)
+  d - data for table. d is a mixed nested list (rectangular matrix)
+  basically fh sends one vector per column, as in (a1 a2 a3;b1 b2 b3;c1 c2 c3;d1 d2 d3;...)
+  return - nothing
+\
 upd:{[t;d]
- 0N!d;                                                                  / increase sequence number
-                                                                        / timstamp the data
-                                                                        / log to tickerplant log on disk
-                                                                        / publish table t
-  empty t;                                                              / empty the cache (delete from table but keeps `g# on sym)
+ SEQ+:1;                                                                / increase sequence number
+ d:timestamp[d];                                                        / timstamp the data
+ log_to_tp[enlist(`upd;t;d)];                                           / log to tickerplant log on disk
+ t insert d;
+ pub[t];                                                                / publish table t
+ empty t;                                                               / empty the cache (delete from table but keeps `g# on sym)
  };
 
-// function that triggers eod on all subscribers
-// "eod" function is the callback on subscribers
-// eod expects a date as param (the date partition to save data to)
-// return - nothing
+
+/
+  function that triggers eod on all subscribers
+  "eod" function is the callback on subscribers
+  eod expects a date as param (the date partition to save data to)
+  return - nothing
+  AGAIN USE @\: IDIOT
+\
 trigger_eod:{[]
   .log.info"Trigger end-of-day event on all subscribers.";
-                                                                        / publish eod event to all subscribers, if any
+  if[count SUBS;{(neg x)(`eod;CDATE)}each SUBS];                      / publish eod event to all subscribers, if any
  };
 
 
-// internal callback overrides follow here
-
-// implement .z.ts such that it calls eod function if midnight passed
-// return - nothing
+/
+  implement .z.ts (the timer) such that it calls eod function if midnight passed
+  return - nothing
+\
 .z.ts:{[]
-                                                                        / if midnight passed, trigger eod on subscribers
+ if[CDATE<.z.D;                 / check if midnight has passed
+    trigger_eod[];              / trigger eod funcs for the RDB to save down
+    CDATE::.z.D;                / change current date to the next day
+    SEQ::0;                     / reset sequence number
+    L::();                      / reset log file and prepare to create a new log file
+    SUBS::();                   / reset subscribers; although is it needed?
+    init[]];                    / reinitialize TP
  };
 
-// on connection close
-// h - closing handle
-// return - nothing
+/
+  on connection close
+  h - closing handle
+  return - nothing
+\
 .z.pc:{[h]
   .log.info"Close connection of handle ",  string h;
-                                                                        / remove subscriber from SUBS
+  SUBS::SUBS _SUBS?h;                                         / remove subscriber from SUBS
  };
 
 // start the process with init call
-
-
+init[];
